@@ -86,7 +86,7 @@ missing_df = df.isnull().sum(axis=0)
 print(missing_df)
 
 # ------------------------------------------------------------------------------
-# 02. Diagnose missing values
+# 02. Diagnose and treat missing values for race, sex, ethnicity
 # ------------------------------------------------------------------------------
 
 # 1. Applicant race
@@ -132,7 +132,7 @@ df.groupby(income_bins)["applicant_race_1"].agg(
     missing_pct=lambda x: x.isna().mean() * 100
 )
 
-# By loan amount - low loan amounts have more missing values by race
+# By loan amount - looks like outlier loan amounts
 loan_bins = pd.cut( # Bin into 50,000 as buckets
     df["loan_amount_000s"],
     bins=range(0, int(df["loan_amount_000s"].max()) + 50, 50)
@@ -178,3 +178,103 @@ df.groupby(msamd_income)["applicant_race_1"].agg(
 df['applicant_race_1'] = df['applicant_race_1'].fillna(0)
 df['applicant_sex'] = df['applicant_sex'].fillna(0)
 df['applicant_ethnicity'] = df['applicant_ethnicity'].fillna(0)
+
+# ------------------------------------------------------------------------------
+# 03. Diagnose and treat missing values for income, loan amount, tract to ms/amd
+# ------------------------------------------------------------------------------
+
+# 1. Loan amount
+print("The proportion of data with missing loan amounts is", round(missing_df['loan_amount_000s']/len(df),2))
+df = df[df['loan_amount_000s'].notna()] # Not even 0.001% dropped
+
+# Furthermore, filter and drop rows that have basically no information across the row
+filtered = df[
+    (df["applicant_race_1"] == 0) &
+    (df["applicant_sex"] == 0) &
+    (df["applicant_ethnicity"] == 0) &
+    (df["applicant_income_000s"].isna()) &
+    (df["tract_to_msamd_income"].isna())
+]
+
+print(len(filtered)) # 1420 rows, or 0.04% of the dataset
+
+df = df[
+    ~(
+        (df["applicant_race_1"] == 0) &
+        (df["applicant_sex"] == 0) &
+        (df["applicant_ethnicity"] == 0) &
+        (df["applicant_income_000s"].isna()) &
+        (df["loan_amount_000s"].isna()) &
+        (df["tract_to_msamd_income"].isna())
+    )
+]
+
+# 2. Tract to MSA/MD income
+# Where it is missing, it is because it is outside county boundaries. I cannot solve this missing data and must drop it.
+# Since it is a small percentage, it should not skew the results too strongly.
+
+df = df[df['tract_to_msamd_income'].notna()] # 0.2% dropped
+
+# 3. Applicant income
+print("The proportion of missing values in the income column is", round(missing_df["applicant_income_000s"]/len(df),2))
+
+# By year
+df.groupby("as_of_year")["applicant_income_000s"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By sex - predominantly the missing sex entries also have missing income
+df.groupby("applicant_sex")["applicant_income_000s"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By ethnicity - predominantly the missing ethnicity entries also have missing income
+df.groupby("applicant_ethnicity")["applicant_income_000s"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By action taken
+df.groupby("action_taken")["applicant_income_000s"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By race - predominantly the missing race entries also have missing income
+df.groupby("applicant_race_1")["applicant_income_000s"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By loan amount - looks like outlier loan amounts
+loan_bins = pd.cut( # Bin into 500,000 as buckets
+    df["loan_amount_000s"],
+    bins=range(0, int(df["loan_amount_000s"].max()) + 500, 500)
+)
+
+df.groupby(loan_bins)["applicant_income_000s"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By loan type - VA-guaranteed loans (2) have much more missingness
+df.groupby("loan_type")["applicant_income_000s"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By lien status
+df.groupby("lien_status")["applicant_income_000s"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
