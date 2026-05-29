@@ -10,6 +10,7 @@
 # Import necessary libraries
 import pandas as pd
 import os
+import numpy as np
 
 # Path for files (requires it to be downloaded locally)
 # California, 2007-2017
@@ -51,11 +52,28 @@ print("The percentage of entries where the loan was purchased by an institution 
 df = df[df.action_taken != 6] # Remove 18% of entries
 
 # ------------------------------------------------------------------------------
-# 01. Missing values
+# 01. Log missing values
 # ------------------------------------------------------------------------------
+
+# For each variable there are the equivalents of "nan"
+# e.g. Ethnicity has "not applicable"
+# For each such variable, replace with nan where appropriate
+
+# Applicant race
+# 6 = "Information not provided by applicant in mail, Internet, or telephone application"
+# 7 = "Not applicable"
+df.loc[df['applicant_race_1'] > 5, 'applicant_race_1'] = np.nan
+
+# Applicant sex
+# 3 = "Information not provided by applicant in mail, Internet, or telephone application"
+# 4 = "Not applicable"
+df.loc[df['applicant_sex'] > 2, 'applicant_sex'] = np.nan
+
+# Applicant ethnicity
+# 3 = "Information not provided by applicant in mail, Internet, or telephone application"
+# 4 = "Not applicable"
+df.loc[df['applicant_ethnicity'] > 2, 'applicant_ethnicity'] = np.nan
 
 # Check missingness by column
 missing_df = df.isnull().sum(axis=0)
 print(missing_df)
-
-df.groupby("action_taken").size()
