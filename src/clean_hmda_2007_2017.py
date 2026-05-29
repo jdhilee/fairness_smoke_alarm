@@ -187,7 +187,7 @@ df['applicant_ethnicity'] = df['applicant_ethnicity'].fillna(0)
 print("The proportion of data with missing loan amounts is", round(missing_df['loan_amount_000s']/len(df),2))
 df = df[df['loan_amount_000s'].notna()] # Not even 0.001% dropped
 
-# Furthermore, filter and drop rows that have basically no information across the row
+# Filter and drop rows that have basically no information across the row
 filtered = df[
     (df["applicant_race_1"] == 0) &
     (df["applicant_sex"] == 0) &
@@ -207,6 +207,20 @@ df = df[
         (df["loan_amount_000s"].isna()) &
         (df["tract_to_msamd_income"].isna())
     )
+]
+
+# Filter and drop rows that have at least two continuous variable entries missing, as there is no multiple imputation that can be done.
+
+continuous_vars = [
+    "applicant_income_000s",
+    "loan_amount_000s",
+    "tract_to_msamd_income"
+]
+
+df[continuous_vars].isna().sum(axis=1).value_counts().sort_index()
+
+df = df[
+    df[continuous_vars].isna().sum(axis=1) < 2 # Drop 3799 entries
 ]
 
 # 2. Tract to MSA/MD income
@@ -253,10 +267,13 @@ df.groupby("applicant_race_1")["applicant_income_000s"].agg(
     missing_pct=lambda x: x.isna().mean() * 100
 )
 
-# By loan amount - looks like outlier loan amounts
-loan_bins = pd.cut( # Bin into 500,000 as buckets
+# By loan amount - extremely high loan amounts have very high missing values
+loan_bins = pd.cut(
     df["loan_amount_000s"],
-    bins=range(0, int(df["loan_amount_000s"].max()) + 500, 500)
+    bins=[
+        0, 50, 100, 150, 200, 250, 300, 400, 500,
+        750, 1000, 1500, 2500, float("inf")
+    ]
 )
 
 df.groupby(loan_bins)["applicant_income_000s"].agg(
@@ -278,3 +295,28 @@ df.groupby("lien_status")["applicant_income_000s"].agg(
     total_count="size",
     missing_pct=lambda x: x.isna().mean() * 100
 )
+
+# Check how many rows left of missing income
+print(df["applicant_income_000s"].isna().sum()/len(df), "of income is missing.") # 6%
+
+# Check how many are associated with missing entries for race, sex, and ethnicity
+income_missing = df["applicant_income_000s"].isna()
+
+all_demo_missing = (
+    (df["applicant_race_1"] == 0) &
+    (df["applicant_ethnicity"] == 0) &
+    (df["applicant_sex"] == 0)
+)
+
+100 * (income_missing & all_demo_missing).sum() / income_missing.sum()
+
+# As a lot of this corresponds with missing values for race/sex/ethnicity
+# And the threshold to drop instead of imputation is 5%, I just drop
+# 5-10% is a judgement call
+
+# Drop rows with missing income
+df = df[df['applicant_income_000s'].notna()] # 0.2% dropped
+
+# Verify no missingness by column
+missing_df_updated = df.isnull().sum(axis=0)
+print(missing_df_updated)
