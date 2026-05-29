@@ -10,7 +10,7 @@
 Raw files are stored locally and not committed to this repository.
 To reproduce, filter using the following:
 - California
-- Mortgages for first lien, owner-occupied, 1-4 family homes
+- All records
 - Plain language and HMDA codes **TODO: only HMDA codes?**
 
 Download the following files from the URL above and place them in `data/raw/hmda/`:
