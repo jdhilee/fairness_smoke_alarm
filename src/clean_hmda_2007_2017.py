@@ -17,6 +17,7 @@ import numpy as np
 path = "/Users/jananidhileepan/Desktop/Don't. Even./University/Imperial College London/Year 2/Dissertation/GitHub/fairness_smoke_alarm/data/raw/hmda/"
 os.chdir(path)
 
+'''
 # Reduce CSV size
 cols_to_keep = ["as_of_year", "action_taken", "applicant_race_1", "applicant_sex", 
                 "applicant_ethnicity", "applicant_income_000s", "loan_amount_000s", 
@@ -38,18 +39,24 @@ for filename in os.listdir(path):
 df_merge = pd.concat(flist, axis=0, ignore_index=True)
 df_merge.drop(df_merge.columns[0], axis=1) # Drop index column
 df_merge.to_csv("concat.csv")
+'''
 
 # Clean data
-# df_merge = pd.read_csv("concat.csv")
+df_merge = pd.read_csv("concat.csv")
 df = df_merge.sort_values('as_of_year', kind='stable') # Reorganise year
 df = df.iloc[:, 2:].reset_index(drop=True) # Delete unnamed columns
 
-# Drop instances where action_taken == 6
-# This is when the loan is purchased by an institution
+# Drop instances where action_taken == 4, 5, 6, or 8
+# 6 is when the loan is purchased by an institution
 # This has no information on individuals and is therefore not useful for us
+# 4, 5, 8 are where the application is incomplete and is therefore not useful
 
 print("The percentage of entries where the loan was purchased by an institution is", round(len(df[df['action_taken'] == 6])/len(df),2))
-df = df[df.action_taken != 6] # Remove 18% of entries
+print("The percentage of applications that are incomplete is",round(len(df[df['action_taken'] == 4] + df[df['action_taken'] == 5] + df[df['action_taken'] == 8])/len(df),2))
+
+df = df[df.action_taken != 6]
+df = df[(df.action_taken != 4) & (df.action_taken != 5) & (df.action_taken != 8)]
+df.groupby("action_taken").size()
 
 # ------------------------------------------------------------------------------
 # 01. Log missing values
@@ -59,17 +66,17 @@ df = df[df.action_taken != 6] # Remove 18% of entries
 # e.g. Ethnicity has "not applicable"
 # For each such variable, replace with nan where appropriate
 
-# Applicant race
+# 1. Applicant race
 # 6 = "Information not provided by applicant in mail, Internet, or telephone application"
 # 7 = "Not applicable"
 df.loc[df['applicant_race_1'] > 5, 'applicant_race_1'] = np.nan
 
-# Applicant sex
+# 2. Applicant sex
 # 3 = "Information not provided by applicant in mail, Internet, or telephone application"
 # 4 = "Not applicable"
 df.loc[df['applicant_sex'] > 2, 'applicant_sex'] = np.nan
 
-# Applicant ethnicity
+# 3. Applicant ethnicity
 # 3 = "Information not provided by applicant in mail, Internet, or telephone application"
 # 4 = "Not applicable"
 df.loc[df['applicant_ethnicity'] > 2, 'applicant_ethnicity'] = np.nan
@@ -77,3 +84,97 @@ df.loc[df['applicant_ethnicity'] > 2, 'applicant_ethnicity'] = np.nan
 # Check missingness by column
 missing_df = df.isnull().sum(axis=0)
 print(missing_df)
+
+# ------------------------------------------------------------------------------
+# 02. Diagnose missing values
+# ------------------------------------------------------------------------------
+
+# 1. Applicant race
+print("The proportion of missing values in the race column is", round(missing_df["applicant_race_1"]/len(df),2))
+
+# By year
+df.groupby("as_of_year")["applicant_race_1"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By sex
+df.groupby("applicant_sex")["applicant_race_1"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By ethnicity - ethnicity = 1 (Hispanic/Latino) has much more missingness
+df.groupby("applicant_ethnicity")["applicant_race_1"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By action taken
+df.groupby("action_taken")["applicant_race_1"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By income
+income_bins = pd.cut( # Bin into 50,000 as buckets
+    df["applicant_income_000s"],
+    bins=range(0, int(df["applicant_income_000s"].max()) + 50, 50)
+)
+
+df.groupby(income_bins)["applicant_race_1"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By loan amount - low loan amounts have more missing values by race
+loan_bins = pd.cut( # Bin into 50,000 as buckets
+    df["loan_amount_000s"],
+    bins=range(0, int(df["loan_amount_000s"].max()) + 50, 50)
+)
+
+df.groupby(loan_bins)["applicant_race_1"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By loan type
+df.groupby("loan_type")["applicant_race_1"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By lien status - not securied by a lien (3) has much higher missingness
+df.groupby("lien_status")["applicant_race_1"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# By tract to msamd income - drops significantly as relative income increases
+msamd_income = pd.cut( # Bin into 5% as buckets
+    df["tract_to_msamd_income"],
+    bins=range(0, int(df["tract_to_msamd_income"].max()) + 5, 5)
+)
+
+df.groupby(msamd_income)["applicant_race_1"].agg(
+    missing_count=lambda x: x.isna().sum(),
+    total_count="size",
+    missing_pct=lambda x: x.isna().mean() * 100
+)
+
+# Assume MAR.
+# For sensitive variables such as race, sex, and ethnicity, I will not do multiple imputation
+# It is morally questionable and statistically risky given multicollinearity between race and ethnicity
+
+# Convert nan values to 0 for race, sex, ethnicity for modelling
+df['applicant_race_1'] = df['applicant_race_1'].fillna(0)
+df['applicant_sex'] = df['applicant_sex'].fillna(0)
+df['applicant_ethnicity'] = df['applicant_ethnicity'].fillna(0)
