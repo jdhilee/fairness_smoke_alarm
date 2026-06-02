@@ -46,15 +46,18 @@ df_merge = pd.read_csv("concat.csv")
 df = df_merge.sort_values('as_of_year', kind='stable') # Reorganise year
 df = df.iloc[:, 2:].reset_index(drop=True) # Delete unnamed columns
 
-# Drop instances where action_taken == 4, 5, 6, or 8
+# Drop instances where action_taken == 4 - 8
 # 6 is when the loan is purchased by an institution
 # This has no information on individuals and is therefore not useful for us
+# 7 is where the loan was denied at preapproval but we have no information what happens next
 # 4, 5, 8 are where the application is incomplete and is therefore not useful
 
 print("The percentage of entries where the loan was purchased by an institution is", round(len(df[df['action_taken'] == 6])/len(df),2))
+print("The percentage of applications that are denied at preapproval is", round(len(df[df['action_taken'] == 7])/len(df),2))
 print("The percentage of applications that are incomplete is",round(len(df[df['action_taken'] == 4] + df[df['action_taken'] == 5] + df[df['action_taken'] == 8])/len(df),2))
 
 df = df[df.action_taken != 6]
+df = df[df.action_taken != 7]
 df = df[(df.action_taken != 4) & (df.action_taken != 5) & (df.action_taken != 8)]
 df.groupby("action_taken").size()
 
@@ -320,3 +323,18 @@ df = df[df['applicant_income_000s'].notna()] # 0.2% dropped
 # Verify no missingness by column
 missing_df_updated = df.isnull().sum(axis=0)
 print(missing_df_updated)
+
+# ------------------------------------------------------------------------------
+# 04. Clean data and save
+# ------------------------------------------------------------------------------
+
+# Rename columns
+columns = ['year', 'action_taken', 'race', 'sex', 'ethnicity', 'income_000s',
+            'loan_amount_000s', 'loan_type', 'lien_status', 'tract_to_msamd_income']
+
+df.columns = columns
+
+# Save
+os.chdir("../../")
+df.to_csv("")
+df.to_csv("processed/cleaned_missing.csv")
