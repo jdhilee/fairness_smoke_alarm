@@ -336,5 +336,4 @@ df.columns = columns
 
 # Save
 os.chdir("../../")
-df.to_csv("")
 df.to_csv("processed/cleaned_missing.csv")
