@@ -216,7 +216,6 @@ df = df[
 ]
 
 # Filter and drop rows that have at least two continuous variable entries missing, as there is no multiple imputation that can be done.
-
 continuous_vars = [
     "applicant_income_000s",
     "loan_amount_000s",
