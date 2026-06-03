@@ -180,10 +180,10 @@ df.groupby(msamd_income)["applicant_race_1"].agg(
 # For sensitive variables such as race, sex, and ethnicity, I will not do multiple imputation
 # It is morally questionable and statistically risky given multicollinearity between race and ethnicity
 
-# Convert nan values to 0 for race, sex, ethnicity for modelling
-df['applicant_race_1'] = df['applicant_race_1'].fillna(0)
-df['applicant_sex'] = df['applicant_sex'].fillna(0)
-df['applicant_ethnicity'] = df['applicant_ethnicity'].fillna(0)
+# Convert nan values to 99 for race, sex, ethnicity for modelling
+df['applicant_race_1'] = df['applicant_race_1'].fillna(99)
+df['applicant_sex'] = df['applicant_sex'].fillna(99)
+df['applicant_ethnicity'] = df['applicant_ethnicity'].fillna(99)
 
 # ------------------------------------------------------------------------------
 # 03. Diagnose and treat missing values for income, loan amount, tract to ms/amd
@@ -195,9 +195,9 @@ df = df[df['loan_amount_000s'].notna()] # Not even 0.001% dropped
 
 # Filter and drop rows that have basically no information across the row
 filtered = df[
-    (df["applicant_race_1"] == 0) &
-    (df["applicant_sex"] == 0) &
-    (df["applicant_ethnicity"] == 0) &
+    (df["applicant_race_1"] == 99) &
+    (df["applicant_sex"] == 99) &
+    (df["applicant_ethnicity"] == 99) &
     (df["applicant_income_000s"].isna()) &
     (df["tract_to_msamd_income"].isna())
 ]
@@ -206,9 +206,9 @@ print(len(filtered)) # 1420 rows, or 0.04% of the dataset
 
 df = df[
     ~(
-        (df["applicant_race_1"] == 0) &
-        (df["applicant_sex"] == 0) &
-        (df["applicant_ethnicity"] == 0) &
+        (df["applicant_race_1"] == 99) &
+        (df["applicant_sex"] == 99) &
+        (df["applicant_ethnicity"] == 99) &
         (df["applicant_income_000s"].isna()) &
         (df["loan_amount_000s"].isna()) &
         (df["tract_to_msamd_income"].isna())
@@ -309,9 +309,9 @@ print(df["applicant_income_000s"].isna().sum()/len(df), "of income is missing.")
 income_missing = df["applicant_income_000s"].isna()
 
 all_demo_missing = (
-    (df["applicant_race_1"] == 0) &
-    (df["applicant_ethnicity"] == 0) &
-    (df["applicant_sex"] == 0)
+    (df["applicant_race_1"] == 99) &
+    (df["applicant_ethnicity"] == 99) &
+    (df["applicant_sex"] == 99)
 )
 
 100 * (income_missing & all_demo_missing).sum() / income_missing.sum()
