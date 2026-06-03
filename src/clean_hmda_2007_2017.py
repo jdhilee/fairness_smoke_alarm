@@ -61,6 +61,9 @@ df = df[df.action_taken != 7]
 df = df[(df.action_taken != 4) & (df.action_taken != 5) & (df.action_taken != 8)]
 df.groupby("action_taken").size()
 
+# Drop all rows where loan_type == 4 (FSA/RHS loans, as they have a different standard and are negligible in the dataset)
+df = df[df.loan_type != 4]
+
 # ------------------------------------------------------------------------------
 # 01. Log missing values
 # ------------------------------------------------------------------------------
