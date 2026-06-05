@@ -14,7 +14,7 @@ import numpy as np
 
 # Path for files (requires it to be downloaded locally)
 # California, 2007-2017
-path = "/Users/jananidhileepan/Desktop/Don't. Even./University/Imperial College London/Year 2/Dissertation/GitHub/fairness_smoke_alarm/data/raw/hmda/"
+path = "data/raw/hmda/"
 os.chdir(path)
 
 '''
