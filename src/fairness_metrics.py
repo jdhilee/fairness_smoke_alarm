@@ -83,8 +83,5 @@ def get_bin_edges(hmda_full, B=10):
     _, edges = pd.qcut(hmda_full[hmda_full['year'] == 2007]['probabilities'], q=B, retbins=True, duplicates='drop')
     return edges
 
-def unfairness_score(df, bin_edges, alpha=1/3, beta=1/3, gamma=1/3):
-    dp = dem_parity_total(df)
-    eo = eq_odds_total(df)
-    cal = calibration_total(df, bin_edges)
-    return alpha * dp + beta * eo + gamma * cal
+def unfairness_score(df_fairness, alpha=1/3, beta=1/3, gamma=1/3):
+    return alpha * df_fairness['DP'] + beta * df_fairness['EO'] + gamma * df_fairness['CAL']
