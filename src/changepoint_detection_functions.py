@@ -164,7 +164,7 @@ def referee_ewma(df_fairness, boot_df):
     return referee_alarm, detectors
 
 
-# AND/OR Gate
+# AND/OR Gate for Alarm
 
 def and_or_gate(cusum, ewma, gate="and", return_df = False):
     comparison_alarms = pd.DataFrame({
@@ -185,7 +185,45 @@ def and_or_gate(cusum, ewma, gate="and", return_df = False):
     else:
         raise ValueError("Gate must be 'and' or 'or'.")
 
-# Miss rate for AND/OR
+# Referee AND/OR Gates
+
+def and_or_gate_referee(detectors_cusum, detectors_ewma, gate="and", return_df=False):
+    """
+    Per-metric gating: for each of DP/EO/CAL, combine that metric's CUSUM and
+    EWMA detectors with the gate, then OR across the three metrics.
+    """
+    and_cols = {}
+    or_cols = {}
+
+    for metric in ["DP", "EO", "CAL"]:
+        gated = and_or_gate(
+            detectors_cusum[metric],
+            detectors_ewma[metric],
+            return_df=True
+        )
+        and_cols[metric] = gated["and_alarm"]
+        or_cols[metric] = gated["or_alarm"]
+
+    and_df = pd.DataFrame(and_cols)
+    or_df = pd.DataFrame(or_cols)
+
+    and_referee = (and_df.sum(axis=1) > 0).astype(int)
+    or_referee = (or_df.sum(axis=1) > 0).astype(int)
+
+    if return_df:
+        out = and_df.add_suffix("_and").join(or_df.add_suffix("_or"))
+        out["and_referee"] = and_referee
+        out["or_referee"] = or_referee
+        return out
+
+    if gate == "and":
+        return and_referee
+    elif gate == "or":
+        return or_referee
+    else:
+        raise ValueError("Gate must be 'and' or 'or'.")
+
+# Miss rate
 
 def miss_rate(alarm, referee, **extra):
     misses = (referee == 1) & (alarm == 0)
