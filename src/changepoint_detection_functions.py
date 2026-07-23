@@ -1,3 +1,6 @@
+import pandas as pd
+import numpy as np
+
 # Function to estimate standard deviation
 def sigma_hat(boot_df, alpha, beta, gamma):
     composite = alpha * boot_df["DP"] + beta * boot_df["EO"] + gamma * boot_df["CAL"]
