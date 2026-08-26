@@ -43,3 +43,8 @@ def bootstrap_fairness_metrics(df, bin_edges, n_bootstrap=200, random_state=0):
         records.append({"DP": dp, "EO": eo, "CAL": cal})
 
     return pd.DataFrame(records)
+
+# Function to estimate standard deviation
+def sigma_hat(boot_df, alpha, beta, gamma):
+    composite = alpha * boot_df["DP"] + beta * boot_df["EO"] + gamma * boot_df["CAL"]
+    return composite.std()
