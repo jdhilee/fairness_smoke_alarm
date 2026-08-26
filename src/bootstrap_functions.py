@@ -1,6 +1,7 @@
 # Bootstrap functions
 
 import pandas as pd
+import numpy as np
 
 from fairness_metrics import (
     dem_parity_total,
