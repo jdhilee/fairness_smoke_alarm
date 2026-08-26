@@ -273,3 +273,8 @@ def calibration_total_with_ci(df, bin_edges):
     lo = sum(r[1] for r in results) / len(attributes)
     hi = sum(r[2] for r in results) / len(attributes)
     return cal, lo, hi
+
+# Unfairness Score
+
+def unfairness_score(df_fairness, alpha=1/3, beta=1/3, gamma=1/3):
+    return alpha * df_fairness['DP'] + beta * df_fairness['EO'] + gamma * df_fairness['CAL']
