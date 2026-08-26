@@ -4,6 +4,8 @@ import numpy as np
 
 dict_references = {"race": 4, "sex": 0, "ethnicity": 0}
 
+# DP, EO, and CAL
+
 def dem_parity_calc(df, attribute):
     dem_parity = (
         df
@@ -79,9 +81,67 @@ def calibration_total(df, bin_edges):
     ethnicity = calibration_calc(df, "ethnicity", bin_edges)
     return (race + sex + ethnicity) / len(dict_references)
 
+# Bin edges for CAL
+
 def get_bin_edges(hmda_full, B=10):
     _, edges = pd.qcut(hmda_full[hmda_full['year'] == 2007]['probabilities'], q=B, retbins=True, duplicates='drop')
     return edges
 
 def unfairness_score(df_fairness, alpha=1/3, beta=1/3, gamma=1/3):
     return alpha * df_fairness['DP'] + beta * df_fairness['EO'] + gamma * df_fairness['CAL']
+
+# Confidence Intervals
+
+def dem_parity_calc_with_ci(df, attribute, z=1.96):
+    dem_parity = (
+        df
+        .groupby(attribute)['predictions']
+        .value_counts(normalize=True)
+        .unstack(fill_value=0)
+        .round(4)
+    )
+    
+    # Group sizes (needed for standard errors)
+    group_counts = df.groupby(attribute)['predictions'].count()
+    
+    gaps = []
+    lower_bounds = []
+    upper_bounds = []
+    
+    ref = dict_references[attribute]
+    p_ref = dem_parity.iloc[ref][1]
+    n_ref = group_counts.iloc[ref]
+    
+    for i in range(len(dem_parity)):
+        if i != ref:
+            p_g = dem_parity.iloc[i][1]
+            n_g = group_counts.iloc[i]
+            
+            gap = abs(p_g - p_ref)
+            
+            # Standard error of the difference between two proportions
+            se = np.sqrt((p_ref * (1 - p_ref)) / n_ref + (p_g * (1 - p_g)) / n_g)
+            
+            gaps.append(gap)
+            lower_bounds.append(max(0, gap - z * se))
+            upper_bounds.append(min(1, gap + z * se))
+    
+    n_groups = len(dem_parity) - 1
+    return (
+        sum(gaps) / n_groups,
+        sum(lower_bounds) / n_groups,
+        sum(upper_bounds) / n_groups
+    )
+
+
+def dem_parity_total_with_ci(df):
+    race_dp, race_lo, race_hi = dem_parity_calc_with_ci(df, "race")
+    sex_dp, sex_lo, sex_hi = dem_parity_calc_with_ci(df, "sex")
+    eth_dp, eth_lo, eth_hi = dem_parity_calc_with_ci(df, "ethnicity")
+    
+    A = len(dict_references)
+    return (
+        (race_dp + sex_dp + eth_dp) / A,
+        (race_lo + sex_lo + eth_lo) / A,
+        (race_hi + sex_hi + eth_hi) / A
+    )
