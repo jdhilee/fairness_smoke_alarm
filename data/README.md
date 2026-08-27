@@ -91,11 +91,3 @@ Raw data is processed by `src/data_processing.py`, which:
 | Training | 2007–2008 | Model training |
 | Pre-deployment validation | 2009–2010 | Fairness baseline establishment |
 | Monitoring | 2011–2017 | Change point detection window |
-
----
-
-## [Second Domain — TBD]
-
-*To be completed once second dataset is identified and assessed.*
-
----
